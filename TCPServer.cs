@@ -3,7 +3,6 @@ using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 
@@ -15,11 +14,11 @@ namespace TCP_Server
         /// <summary>
         /// Default Constants.
         /// </summary>
-        public static IPAddress     DEFAULT_SERVERIP = IPAddress.Parse("127.0.0.1");
-        public static int           DEFAULT_PORT = 5555;
-        public static float         Version = 0.373f;
-        public static String        vDate = "20201120";
-        
+        public static IPAddress DEFAULT_SERVERIP = IPAddress.Parse("127.0.0.1");
+        public static int DEFAULT_PORT = 5555;
+        public static float Version = 0.373f;
+        public static String vDate = "20201120";
+
         #endregion
 
         #region Variables
@@ -28,20 +27,20 @@ namespace TCP_Server
         /// Local Variables Declaration.
         /// </summary>
         private TcpListener _server = null;
-        private bool        _stopServer = false;
-        private bool        _stopPurging = false;
-        private Thread      _serverThread = null;
-        private Thread      _purgingThread = null;
-        private ArrayList   _socketListenersList = null;
-        private ArrayList   _currentClients = null;
-        private bool        _autodisconnectclients = false; //Don't Auto-disconnect inactive clients: Only disconnect clients on socket-errors
-        private int         _clientspurgeintervall = 3; //Intervall in senconds on which to check and remove inactive connections (suggestion: 3-10)
-        private int         _clientbufffersize = 1024;  //Default Buffersize for Clienthandlers
-        private int         _maximumclients = 200;  //Maximum number of active clients
-        private bool        _oneconnectionperclient;  //just one-connection per client
+        private bool _stopServer = false;
+        private bool _stopPurging = false;
+        private Thread _serverThread = null;
+        private Thread _purgingThread = null;
+        private ArrayList _socketListenersList = null;
+        private ArrayList _currentClients = null;
+        private bool _autodisconnectclients = false; //Don't Auto-disconnect inactive clients: Only disconnect clients on socket-errors
+        private int _clientspurgeintervall = 3; //Intervall in senconds on which to check and remove inactive connections (suggestion: 3-10)
+        private int _clientbufffersize = 1024;  //Default Buffersize for Clienthandlers
+        private int _maximumclients = 200;  //Maximum number of active clients
+        private bool _oneconnectionperclient;  //just one-connection per client
         #endregion
         #region public
-        public int          _clientstimeoutseconds = 30; //90 //Client-idle-timeout in seconds. This is only needed if  _autodisconnectclients is set to true
+        public int _clientstimeoutseconds = 30; //90 //Client-idle-timeout in seconds. This is only needed if  _autodisconnectclients is set to true
         #endregion
 
         #endregion
@@ -63,8 +62,10 @@ namespace TCP_Server
         /// <summary>
         /// Returns the number of active client connections
         /// </summary>
-        public int Clientscount {
-            get {
+        public int Clientscount
+        {
+            get
+            {
                 if (this._socketListenersList != null)
                 {//socketListeners is already initialized
                     return this._socketListenersList.Count;
@@ -79,7 +80,8 @@ namespace TCP_Server
         /// <summary>
         /// Gets or sets the maximum number of allowed clients
         /// </summary>
-        public int maxClients {
+        public int maxClients
+        {
             get
             {
                 return this._maximumclients;
@@ -99,7 +101,7 @@ namespace TCP_Server
             get
             {
                 ArrayList myreturn = null;
-                
+
                 lock (this._currentClients)
                 {
                     myreturn = this._currentClients;
@@ -119,7 +121,7 @@ namespace TCP_Server
 
             lock (this._socketListenersList)
             {
-                foreach (TCPConnectionHandler socketListener  in this._socketListenersList)
+                foreach (TCPConnectionHandler socketListener in this._socketListenersList)
                 {
                     if (socketListener.ClientIP.Equals(ClientIP))
                     {
@@ -134,18 +136,18 @@ namespace TCP_Server
         /// Returns all IP-Adresses of all connected clients
         /// </summary>
         public ArrayList connectedIps
-        { 
-        get
+        {
+            get
             {
                 ArrayList myreturn = new ArrayList();
-                
+
                 ArrayList Endpoints = this.connectedClients;
                 foreach (EndPoint ep in Endpoints)
                 {
                     String sep = ep.ToString();
                     sep = sep.Substring(0, sep.IndexOf(':'));
                     myreturn.Add(IPAddress.Parse(sep));
-                }                
+                }
                 return myreturn;
             }
         }
@@ -178,7 +180,8 @@ namespace TCP_Server
             this._oneconnectionperclient = oneconnectionperclient;
 
             //If a eventhandler is given, register ServerErrorEvent to that handler
-            if (srverr_eventsubscriber != null) { 
+            if (srverr_eventsubscriber != null)
+            {
                 this.TCPServerErrorEvent += srverr_eventsubscriber;
             }
 
@@ -193,7 +196,7 @@ namespace TCP_Server
             {
                 this.TCPServerClientsEvent += srvclient_eventsubscriber;
             }
-            
+
             if (clientbuffersize >= 64 && clientbuffersize <= 4096)
             {
                 this._clientbufffersize = clientbuffersize;
@@ -279,7 +282,7 @@ namespace TCP_Server
             {
                 if (this.Clientscount < this._maximumclients)
                 { // Only accept new connections if maximum clients is not exceeded    
-                    
+
                     try
                     {
                         // Wait for any client requests and if there is any 
@@ -315,7 +318,7 @@ namespace TCP_Server
                             socketListener.OnDataSent += this.Handle_ClientConnectionDataSent;
                             socketListener.ClientConnectDisconnect += this.Handle_Client_Dis_Connected;
 
-                            
+
                             if (this.TCPServerClientsEvent != null) //We have to do this here, as the socketListener-object already exists and would have raised the event before we subscribed it.
                             {
                                 this.TCPServerClientsEvent(
@@ -325,10 +328,10 @@ namespace TCP_Server
                                         )
                                     ); //Event: Client connected
                             }
-                            
+
 
                         }
-                    
+
                         //Monitor.Exit(m_socketListenersList);
 
                         // Start a communication with the client in a different
@@ -355,7 +358,8 @@ namespace TCP_Server
         /// Will close the connection of a given TCPClient gracefully
         /// </summary>
         /// <param name="connhandler">The connectionshandler</param>
-        public void disconnectclient(TCPConnectionHandler connhandler) {
+        public void disconnectclient(TCPConnectionHandler connhandler)
+        {
             connhandler.StopSocketListener();  //... stop the connectionhandler
         }
 
@@ -371,7 +375,7 @@ namespace TCP_Server
                 {
                     if (
                             connhandler.ClientIP.Equals(remoteendpoint.Address.ToString()) && //If the IP-Address of the current connectionhandler matches...
-                            (int)connhandler.RemotePort != remoteendpoint.Port //...but the Ports does not match... 
+                            connhandler.RemotePort != remoteendpoint.Port //...but the Ports does not match... 
                         ) //... this means that this must be another connection from the same host, but not the same connection
                     {
                         connhandler.StopSocketListener(); //... stop the connectionhandler of the secondary/other connection                       
@@ -442,7 +446,7 @@ namespace TCP_Server
                         this._socketListenersList.Remove(deleteList[i]);
                     }
                 }
-                
+
                 //Monitor.Exit(m_socketListenersList);
 
                 deleteList = null;
@@ -459,7 +463,8 @@ namespace TCP_Server
         {
             if (this._server != null)
             {
-                try { 
+                try
+                {
                     // Create an ArrayList for storing SocketListeners before
                     // starting the server.
                     this._socketListenersList = new ArrayList();
@@ -485,7 +490,7 @@ namespace TCP_Server
                     {
                         this.TCPServerStateEvent(this, new TCPServerStateEventArgs(4)); //Event: Server is Running
                     }
-                    
+
                 }
                 catch (Exception e)
                 {//Error while starting server
@@ -613,11 +618,12 @@ namespace TCP_Server
         /// <param name="args"></param>
         public void Handle_ClientConnectionDataReceived(object sender, TCPSocketSendReceiveEventArgs args)
         {
-            if (this.ClientDataReceived != null) {
+            if (this.ClientDataReceived != null)
+            {
                 this.ClientDataReceived(this, args);
             }
         }
-        
+
         /// <summary>
         /// Handles the event, that data is sent to a client
         /// </summary>

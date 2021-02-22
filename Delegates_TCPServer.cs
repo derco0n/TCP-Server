@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Net;
 using System.Text;
 
@@ -34,11 +33,12 @@ namespace TCP_Server
         /// The data as a byte-array
         /// </summary>
         public byte[] Data { get; }
-        
+
         /// <summary>
         /// Returns a string from the date stored as a byte-array using the given encoding
         /// </summary>
-        public String Message {
+        public String Message
+        {
             /*
              * A String consists of a Array of Bytes which are represented as characters using a specific encoding and is usually terminated by a NULL-Byte
              * 
@@ -63,7 +63,7 @@ namespace TCP_Server
         /// <summary>
         /// The Endpoint from which the data has been received or to which it should be sent
         /// </summary>
-        public EndPoint R_Endpoint { get;  }
+        public EndPoint R_Endpoint { get; }
         #endregion
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace TCP_Server
             this.Data = _Stringencoding.GetBytes(_message); //Data is given as a String. Store it as a byte-array
             this.R_Endpoint = RemoteEndPoint;
         }
-        
+
         #endregion
     }
     #endregion
@@ -235,7 +235,7 @@ namespace TCP_Server
     {
         #region Dictionary
         //Dictionary that translates Errorcodes to Textmessages
-        private static readonly Dictionary<uint, String> TCPServer_Errorcodes =new Dictionary<uint, string> {
+        private static readonly Dictionary<uint, String> TCPServer_Errorcodes = new Dictionary<uint, string> {
                 { 1, "Error during intializing the server." },
                 { 2, "Error during starting the server." },
                 { 3, "Error during stopping the server." },
@@ -245,8 +245,10 @@ namespace TCP_Server
 
         #region Properties
         public uint TCPServer_Errorcode { get; }
-        public String TCPServer_Errormessage { //Returns the Errormessage to the corresponding Errorcode from the Static Dictionary
-            get {
+        public String TCPServer_Errormessage
+        { //Returns the Errormessage to the corresponding Errorcode from the Static Dictionary
+            get
+            {
                 return TCPServerErrorEventArgs.TCPServer_Errorcodes[this.TCPServer_Errorcode];
             }
         }
@@ -254,7 +256,7 @@ namespace TCP_Server
         #endregion
 
         #region Constructor
-        public TCPServerErrorEventArgs (uint _errorcode, Exception _e)
+        public TCPServerErrorEventArgs(uint _errorcode, Exception _e)
         {
             this.TCPServer_Errorcode = _errorcode;
             this.TCPServer_Exception = _e;

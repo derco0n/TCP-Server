@@ -1,10 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Text;
-using System.Collections.Generic;
-using System.IO;
+using System.Threading;
 
 namespace TCP_Server
 {
@@ -12,7 +11,7 @@ namespace TCP_Server
     /// Summary description for TCPSocketListener.
     /// </summary>
     public class TCPConnectionHandler
-    {        
+    {
         public static String DEFAULT_FILE_STORE_LOC = @"/Logs/";
 
         #region Variables
@@ -25,10 +24,10 @@ namespace TCP_Server
         /// <summary>
         /// Variables that are accessed by other classes indirectly.
         /// </summary>
-        private Socket  _clientSocket = null;
-        private bool    _stopClient = false;
-        private Thread  _clientListenerThread = null;
-        private bool    _markedForDeletion = false;  //If this is set to true, a purging thread can recognize this flag and purge the listener
+        private Socket _clientSocket = null;
+        private bool _stopClient = false;
+        private Thread _clientListenerThread = null;
+        private bool _markedForDeletion = false;  //If this is set to true, a purging thread can recognize this flag and purge the listener
 
         /// <summary>
         /// Working Variables.
@@ -43,7 +42,7 @@ namespace TCP_Server
         //private int buffersize = 3; //DEBUG
 
         private int ClientCycleWaitTime = 3; //We need to pause the client-loop () for a short time to avoid using up all CPU-Ressources. My recommendation: 3-20ms 
-        
+
         private Queue<Byte> _sendqueue; //Queue with bytes which should be sent to the client
 
         private String _clientIP; //The clients IP-Address
@@ -66,24 +65,25 @@ namespace TCP_Server
         /// Returns the RemoteEndpoint that is connected to this ConnectionHandler-Thread or NULL in case of an error
         /// </summary>
         public EndPoint RemoteEndPoint
-        {   
+        {
             get
             {
                 EndPoint myreturn = null;
-                
-            if (this._clientSocket != null)
-            {
-                lock (this._clientSocket)
+
+                if (this._clientSocket != null)
                 {
-                    try {//Try to set a return value
+                    lock (this._clientSocket)
+                    {
+                        try
+                        {//Try to set a return value
                             myreturn = this._clientSocket.RemoteEndPoint;
                         }
-                    catch
+                        catch
                         {
                             //Setting return value not possible. Returning null
                         }
+                    }
                 }
-            }
                 return myreturn;
             }
         }
@@ -120,15 +120,16 @@ namespace TCP_Server
         /// <param name="timeout">clienttimeout in seconds (DEFAULT: 15) only used if autodisconnectclient is true</param>
         /// <param name="autodisconnectclient">automatically disconnect the client socket after a certain time of inactivity (DEFAULT: true)</param>
         /// <param name="buffersize">DEFAULT=1024. Optionally define the size (64-4096) used for client-socket-buffer to tune network load</param>   
-        public TCPConnectionHandler(Socket clientSocket, int timeout = 15, bool autodisconnectclient = true, int buffersize=1024)
+        public TCPConnectionHandler(Socket clientSocket, int timeout = 15, bool autodisconnectclient = true, int buffersize = 1024)
         {
             this._Stringencoding = Encoding.UTF8;
-            
+
             this._client_timeout = timeout;
             this._autodisconnectclient = autodisconnectclient;
-            if (buffersize >= 64 && buffersize <= 4096) { 
+            if (buffersize >= 64 && buffersize <= 4096)
+            {
                 this._buffersize = buffersize;
-                }
+            }
             _clientSocket = clientSocket;
             this._clientIP = ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString();  //Save the clients IP to be used in disconnect situations when RemoteEndPoint get NULL
             this._clientPort = Convert.ToUInt16(((IPEndPoint)clientSocket.RemoteEndPoint).Port);  //Save the clients Port to be used in disconnect situations when RemoteEndPoint get NULL
@@ -263,8 +264,9 @@ namespace TCP_Server
         /// <returns>True if connected otherwise false</returns>
         private bool ClientIsConnected()
         {
-            try {
-                
+            try
+            {
+
                 bool result = !(this._clientSocket.Poll(1, SelectMode.SelectRead) && this._clientSocket.Available == 0); //Will check if client is still connected
                 /*
                 if (!result)
@@ -274,8 +276,9 @@ namespace TCP_Server
                 */
                 return result;
             }
-            catch (SocketException) { 
-                return false; 
+            catch (SocketException)
+            {
+                return false;
             }
         }
 
@@ -288,7 +291,7 @@ namespace TCP_Server
         private void ClientConnectionHandlerThreadStart()
         {
             int size = 0;
-            
+
             Byte[] byteBuffer = new Byte[this._buffersize];
 
             this._lastReceiveDateTime = DateTime.Now;    // reset last receive time
@@ -313,11 +316,11 @@ namespace TCP_Server
 
                     #region checkconnection                    
                     if (!this.ClientIsConnected())
-                    { 
+                    {
                         //Connection lost
-                        
+
                         throw new SocketException(10064); //Raise a Socketexception that should be handled in the catch-block...
-                        
+
                         /*
                         From https://docs.microsoft.com/de-de/windows/win32/winsock/windows-sockets-error-codes-2?redirectedfrom=MSDN
                         WSAEHOSTDOWN
@@ -346,17 +349,17 @@ namespace TCP_Server
                         size = this._clientSocket.Receive(byteBuffer, this._buffersize, SocketFlags.Partial); //Read from socket and put its contents to byteBuffer; count the size
                         this._currentReceiveDateTime = DateTime.Now; // save last receive as current receive time
                         this.ParseReceiveBuffer(byteBuffer/*, size*/); //Parses received bytes and raises an event if subscribed                                      
-                    }                    
+                    }
                     #endregion
 
                     #region Sending
                     //Send data
                     lock (this._sendqueue) //(Thread-)lock the sendqueue, to prevent it from beeing accessed by another thread
-                    {   
+                    {
                         while (this._sendqueue.Count > 0) //As long as there is data available in the Sendqueue
                         {
                             Byte[] byteBufferOut = new Byte[this._buffersize]; //Create a new sendbuffer
-                       
+
                             for (int i = 0; i < this._buffersize; i++) //Iterate from 0 the the defined buffersize...
                             {
                                 if (this._sendqueue.Count > 0) //If there is still an element in the sendqueue
@@ -374,14 +377,14 @@ namespace TCP_Server
                             {
                                 //Raise data-sent-event
                                 this.OnDataSent(this, new TCPSocketSendReceiveEventArgs(
-                                    byteBufferOut, 
-                                    true, 
-                                    this._Stringencoding, 
+                                    byteBufferOut,
+                                    true,
+                                    this._Stringencoding,
                                     _clientSocket.RemoteEndPoint)
                                     );
                             }
                         }
-                        
+
                     } //unlock the sendqueue again
                     #endregion
                     #endregion
@@ -405,7 +408,7 @@ namespace TCP_Server
                  * Note, that the longer the sleep-time, the greater the delay while sending and receiving data
                  * My recommendation: 3-20ms                 
                  */
-                Thread.Sleep(this.ClientCycleWaitTime); 
+                Thread.Sleep(this.ClientCycleWaitTime);
             }
 
             //Stop timer, after exiting while(). - When client should be stopped.
@@ -445,7 +448,7 @@ namespace TCP_Server
             //Mark for deletion
             this._markedForDeletion = true;
         }
-        
+
         /// <summary>
         /// Method that checks whether there are any client calls for the
         /// timeout-period (defined in the constructor) or not. If not this client SocketListener will
@@ -477,7 +480,7 @@ namespace TCP_Server
 
         #endregion
         #region eventraisers
-        
+
         /// <summary>
         /// Will raise the event that indicates, that a client has just (dis-)connected
         /// </summary>
