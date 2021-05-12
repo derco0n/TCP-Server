@@ -16,8 +16,8 @@ namespace TCP_Server
         /// </summary>
         public static IPAddress DEFAULT_SERVERIP = IPAddress.Parse("127.0.0.1");
         public static int DEFAULT_PORT = 5555;
-        public static float Version = 0.373f;
-        public static String vDate = "20201120";
+        public static float Version = 0.38f;
+        public static String vDate = "20210512";
 
         #endregion
 
@@ -38,6 +38,7 @@ namespace TCP_Server
         private int _clientbufffersize = 1024;  //Default Buffersize for Clienthandlers
         private int _maximumclients = 200;  //Maximum number of active clients
         private bool _oneconnectionperclient;  //just one-connection per client
+        private bool _dscp_prioritized;  //DSCP-Flags set to prioritize TCP-Packets on client sockets
         #endregion
         #region public
         public int _clientstimeoutseconds = 30; //90 //Client-idle-timeout in seconds. This is only needed if  _autodisconnectclients is set to true
@@ -165,6 +166,8 @@ namespace TCP_Server
         /// <param name="srvstate_eventsubscriber">DEFAULT=null. Optionally define a handler for server-state-transitions</param>
         /// <param name="srvclient_eventsubscriber">DEFAULT=null. Optionally define a handler for server-clientstates</param>   
         /// <param name="clientbuffersize">DEFAULT=1024. Optionally define the size (64-4096) used for client-socket-buffer to tune network load</param>   
+        /// <param name="oneconnectionperclient">limits the maximum connections per client to 1</param>   
+        /// <param name="dscp_prioritized">Enables higher packet-priority for client-sockets by setting DSCP-Flags (https://de.wikipedia.org/wiki/DiffServ)</param>   
         public TCPServer(
             IPAddress ServerListenIP,
             int port,
@@ -172,12 +175,14 @@ namespace TCP_Server
             TCPServerStateEventHandler srvstate_eventsubscriber = null/*Optionally define a handler for server-state-transitions*/,
             TCPServerClientsEventHandler srvclient_eventsubscriber = null/*Optionally define a handler for server-clientstates*/,
             int clientbuffersize = 1024,
-            bool oneconnectionperclient = false
+            bool oneconnectionperclient = false,
+            bool dscp_prioritized=false
             )
 
         {
 
             this._oneconnectionperclient = oneconnectionperclient;
+            this._dscp_prioritized = dscp_prioritized;
 
             //If a eventhandler is given, register ServerErrorEvent to that handler
             if (srverr_eventsubscriber != null)
@@ -288,6 +293,26 @@ namespace TCP_Server
                         // Wait for any client requests and if there is any 
                         // request from any client accept it (Wait indefinitely).
                         clientSocket = this._server.AcceptSocket();
+
+                        if (this._dscp_prioritized)
+                        {
+                            try
+                            {
+                                //Try to set the socketoptions in order to QoS-prioritize packets vis DSCP
+                                clientSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.BsdUrgent, 1);
+                                clientSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.Expedited, 1);
+                                clientSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
+
+                                //Decimal 184 is DSCP-Value 46. .Net doesn't support the 8bit ToS-Field, but not to set the 6Bit-DSCP directly.
+                                clientSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.TypeOfService, 184);
+                            }
+                            catch
+                            {
+
+                            }
+                        }
+                        
+
                         if (this._oneconnectionperclient)
                         {//If client-connections should be limited to one per client
 
